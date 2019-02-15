@@ -1,0 +1,361 @@
+                              DOUGH SPECIFICATIONS
+                                   Version  1
+                                  Neel Chauhan
+
+0. Introduction
+
+    Dough is the Tor pluggable transport for DNS-over-HTTPS. The name is a
+    play on the acronym DoH (the shorthand form for DNS-over-HTTPS).
+
+    As Internet connections become more censored globally, many people will
+    need tools like Tor and VPNs to connect to the uncensored Internet.
+    Unfortunately, a lot of these connections also block Tor. Tor's way of
+    dealing with this issue is "pluggable transports", which are add-on
+    software to tunnel Tor traffic through another type of traffic.
+
+    One way to use pluggable transports as proposed here is to tunnel through
+    DNS-over-HTTPS relays for the client, where the relay would then push
+    traffic through ordinary DNS requests to the bridge.
+
+    Shutting off DNS would be very hard, if not impossible. And that's where
+    Dough comes into place.
+
+    Keep in mind that Dough is still under development. These specifications
+    can change at any time until Dough isn't "stable" (if it ever will).
+
+1. HOW DOUGH MESSAGES WILL WORK
+
+    Dough requests are sent in messages which contain a type field in the
+    header which determines which function the message should go to. The
+    type determines the number and length of fields which will exist in
+    the message body.
+
+    Keep in mind that like in the networking stack, all binary integers
+    in Dough are big-endian.
+
+2. MESSAGE ENCODING TYPES
+
+    Messages will be encoded in the following formats:
+
+     * From the client to the server: 120 byte bnary message encoded to a
+       Base32-encoded 192 byte subdomain
+        * The message will be encoded in a subdomain
+     * From the server to the client (Option A): 3072-byte message in binary
+       format
+        * This will be done in a DNS-over-HTTPS setup where the relay supports
+          DNS wire format
+        * This improves performance at the cost of some obfuscation in terms of
+          packet size
+     * From the server to the client (Option B): 180 byte binary message
+       encoded to a Base64-encoded 240 byte TXT record
+        * This will be done on a DNS-over-HTTPS setup which does not support
+          wire format, or in a use case scenario where extra obfuscation is
+          preferred.
+        * This reduces performance but normally-sized DNS requests can make it
+          harder for a censor to know about your requests.
+
+3. MESSAGE FORMAT
+
+    The message will consist of the following:
+
+     * Header
+     * Contents
+
+    The Header will be as follows:
+
+     * 1-byte Type Field (uint8)
+     * 4-byte CRC32 Checksum Field (uint32)
+
+    The Contents will vary based on the Type field of the message. For each
+    type of message, the contents will be described in their respective
+    sections.
+
+    The CRC32 Checksum field is a CRC32 checksum of the entire message after
+    the header.
+
+    The types of the messages (and the side they will be sent from) in Version
+    1 are as follows:
+
+    * Type 0: Checksum Invalid (Client/Server)
+    * Type 1: Connection Initialization Request (Client)
+    * Type 2: Connection Accepted (Server)
+    * Type 3: Connection Rejected (Server)
+    * Type 4: Connection Send Data (Client)
+    * Type 5: Connection Send Data Acknowledgement (Server)
+    * Type 6: Connection Retrieve Data Request (Client)
+    * Type 7: Connection Retrieve Data (Server)
+    * Type 8: Connection Request Failed (Server)
+    * Type 9: Connection Teardown (Client)
+    * Type 10: Connection Teardown Acknowledgement (Server)
+    * Type 11: Invalid Connection (Server)
+
+    The type number will be sent in the Type field of the header.
+
+    The CRC32 checksum field is a checksum of the entire message except for the
+    header. If the message consists of only a header, the CRC32 checksum field
+    should be zero (0).
+
+4. CHECKSUM INVALID MESSAGE (TYPE 0)
+
+    This message is sent by the client or the server when the CRC32 checksum
+    does not match the message.
+
+    The fields for this message include the following:
+
+     * Connection ID (uint32)
+
+    If a client receives this message, this indicates the data sent to the
+    client is bad. In this event, they should re-send the request.
+
+    If a server receives this message with a particular Connection ID, this
+    indicates the data sent by the server is bad. To prepare for the event,
+    the server should save a copy of the current message being sent to the
+    client.
+
+    If the client sends this message, it should re-send the request after this
+    message. If the server receives any other type of message with a particular
+    Connection ID, then the previus saved message should be discarded to make
+    space for the next message.
+
+    Should this message not be senty or received, then both sides should assume
+    the connection succeeded.
+
+    For connections from servers to clients, the Connection ID should be 0. For
+    connections from clients to servers, the Connection ID should be the value
+    assigned by the server to the client for the connection.
+
+    The reason for including the Connection ID in client to server messages is
+    because the message will likely be relayed through a DNS-over-HTTPS proxy
+    and including this value helps the server distinguish between messages.
+
+    If the client's message has an invalid checksum, the server should send
+    Type 0 messages instead of the type it would send otherwise.
+
+    If the server's message has an invalid checksum, the client should send
+    this message as a new request. The server should then respond with the
+    message it sent but failed to do so.
+
+    If there are more than five subsequent Type 0 messages sent from the
+    client without any other type of message, the server should close the
+    connection and send a Type 8 (Connection Teardown) message. This is for
+    denial of service protection on the server side.
+
+5. CONNECTION INITALIZATION REQUEST (TYPE 1)
+
+    This message is sent by the client to request a connection to the server.
+
+    The fields used in this message include the following:
+
+     * 4-byte Connection ID Specifier (uint32)
+
+    The Client ID Specifier is the number which will be used to generate the
+    Connection ID by the server. This should be different on each connection
+    to the server, and should be a random number.
+
+6. CONNECTION ACCEPTED (TYPE 2)
+
+    This message is a response to a Type 1 message and is sent to the client
+    if the connection is accepted.
+
+    The fields used in this message include the following:
+
+     * 4-byte Connection ID (uint32)
+
+    The Connection ID should be a random number generated on the server side
+    multiplied with the Connection ID Specifier, and should be done on each
+    connection request, regardless of which client it comes from. This number
+    will be used by the client in the connection it will make with the server
+    specified in the connection's Type 1 Message.
+
+    If this message is received, the server should open a connection to the
+    Tor bridge.
+
+7. CONNECTION REJECTED (TYPE 3)
+
+    This message is a response to a Type 1 Message and is sent to the client
+    if the connection is rejected.
+
+    This message has the following fields:
+
+     * 2-byte Error ID (uint16)
+
+    The Error ID can be one of the following:
+
+     * 0: Error for no/other reason
+     * 1: Server Overloaded
+     * 2: Connection ID Specifier Used Already
+
+    Keep in mind that future versions can include new error types.
+
+8. CONNECTION SEND DATA (TYPE 4)
+
+    This message is sent by a client when it wants to send data to the server.
+
+    The fields used include:
+
+     * 4-byte Connection ID (uint32)
+     * 4-byte Sequence Number (uint32)
+     * 2-byte Message Size (uint32)
+     * Variable-length Data (105 bytes for TXT records, 3057 bytes for EDNS0)
+
+    The Connection ID will be associated with the respective connection to the
+    Tor bridge that data will be sent to.
+
+    The Sequence Number is used to prevent overlapping data transmission. The
+    rules for this are as follows:
+
+     * If this is the first Type 4 message, we should start with a random
+       number. This is similar to the TCP sequence number. Both the server and
+       the client will use this value as an offset and map it to 0.
+     * If this is not the first Type 4 message, we should start with the
+       previous sequence number added with the previous size.
+     * If the new sequence number will be greater than 2^32 - 1, we will
+       add what we can to the sequence number, and on overflow, we will
+       reset the sequence number to 0 and continue the addition from there.
+     * In the server and client, the sequence number will be stored in a 64-bit
+       unsigned int (uint64) to prevent overflow, but we will transmit this as
+       a 32-bit integer in the messages.
+
+    The Message Size field should contain the number of bytes being sent to the
+    server.
+
+    The Variable-length Data Field should contain the bytes being sent to the
+    server, with a size specified in the Message Size field. If the size of the
+    message is not what was sent to the client, the server should send a Type 8
+    message.
+
+    This message can have a response of a Type 5 message if it was successfully
+    sent, or a Type 8 message if it wasn't sent successfully (e.g. Tor bridge
+    is down, bad request).
+
+9. CONNECTION SEND DATA ACKNOWLEDGEMENT (TYPE 5)
+
+    This message is sent to a client if data was sent to a server successfully
+    per a Type 4 message.
+
+    This message has no fields. Therefore, the CRC32 checksum should be 0.
+
+10. CONNECTION RETRIEVE DATA REQUEST (TYPE 6)
+
+    This message is sent to a server if a client wants to request data.
+
+    The fields are as follows:
+
+     * 4-byte Connection ID (uint32)
+     * 4-byte Sequence Number (uint32)
+     * 2-byte Requested Message Size (uint32)
+
+    The Connection ID field is the ID generated earlier used to identify the
+    connection.
+
+    The Sequence Number is used to prevent overlapping transmission. The rules
+    for this number are as follows:
+
+     * If this is the first Type 6 message, we should start with a random
+       number. This is similar to the TCP sequence number. Both the server and
+       the client will use this value as an offset and map it to 0.
+     * If this is not the first Type 6 message, we should start with the
+       previous sequence number added with the previous size.
+     * If the new sequence number will be greater than 2^32 - 1, we will
+       add what we can to the sequence number, and on overflow, we will
+       reset the sequence number to 0 and continue the addition from there.
+     * In the server and client, the sequence number will be stored in a 64-bit
+       unsigned int (uint64) to prevent overflow, but we will transmit this as
+       a 32-bit integer in the messages.
+
+    The Requested Message Size is used to get the number of requested bytes to
+    the server's connection and should be sent to the client.
+
+    This message can have a response of a Type 7 message if it was successfully
+    sent, or a Type 8 message if it wasn't sent successfully (e.g. Tor bridge
+    is down, bad request).
+
+11. CONNECTION RETRIEVE DATA (TYPE 7)
+
+    In this message, we will retrieve the data from the target and send it back
+    to the client.
+
+    The fields are as follows:
+
+     * 2-byte Size Field (uint16)
+     * Variable-length Message
+
+    When a client retrieves this message, both sides should increment their
+    sequence number with the value in the Size field with the rules described
+    in Section 10.
+
+12. CONNECTION REQUEST FAILED (TYPE 8)
+
+    This message is sent when a request from a Type 4 or Type 6 message has
+    failed.
+
+    The following fields will be used here:
+
+     * 1-byte Failure Field (uint8)
+
+    The values of the Failure Field are as follows:
+
+     * 0: Reserved
+     * 1: Tor Bridge Down
+     * 2: Malformed Request
+
+    On a Type 8 message, both sides should terminate their session and close
+    down.
+
+13. CONNECTION TEARDOWN (TYPE 9)
+
+    A Type 9 message is sent when the connection has successfully finished.
+    This tells the server to close down the connection.
+
+    The fields used here include:
+
+     * 4-byte Connection ID (uint32)
+
+    If a server has received a Type 9 message, it should close the connection
+    and respond with a Type 10 message.
+
+13. CONNECTION TEARDOWN ACKNOWLEDGEMENT (TYPE 10)
+
+    A Type 10 message is sent by the server to the client as a response to a
+    Type 9. This tells the client that the server has closed
+
+    There are no fields to this message, and the CRC32 checksum should be zero.
+
+14. INVALID CONNECTION (TYPE 11)
+
+    If the server does not recognize the connection ID, it should send a Type
+    11 message.
+
+    There are no fields to this message, and the CRC32 checksum should be zero.
+
+14. CONNECTION CLEANUP RULES
+
+    The server should keep a timestamp with each connection for when the last
+    message was received from the client. The server should not log these
+    values or write them to disk, and only keep them in memory.
+
+    Every second, we should disconnect every connection with a timestamp more
+    than 30 seconds old. This is to disconnect inactive connections where no
+    teardown messages were specified.
+
+    30 seconds was chosen to support low-bandwidth high-latency connections
+    like satellite or dial-up while not allowing attackers to overload servers
+    with blank connections that could overload the server.
+
+    Also, if the connection closes from the destination, we should clean up.
+    If we clean up and the client requests a connection, we should respond
+    with a Type 11 message.
+
+15. CONNECTION ID GENERATION
+
+    The client should generate a random number for the Connection ID Specifier.
+    This number should be a random number between 1 and 2^16-1.
+
+    To generate the Connection ID, the server should generate another random
+    number between 1 and 2^16-1, and multiply the Connection ID Specifier with
+    the newly-generated random number from the server. The server should then
+    initiate a connection with the Tor Bridge identified by the new Connection
+    ID and return it to the client.
+
+    The reason why the random number is beterrn 1 and 2^16-1 is because this
+    will allow connection IDs to fit in a 32-bit number.
