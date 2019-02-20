@@ -195,7 +195,7 @@
 
      * 4-byte Connection ID (uint32)
      * 4-byte Sequence Number (uint32)
-     * 2-byte Message Size (uint32)
+     * 2-byte Message Size (uint16)
      * Variable-length Data (105 bytes for TXT records, 3057 bytes for EDNS0)
 
     The Connection ID will be associated with the respective connection to the
@@ -243,7 +243,7 @@
 
      * 4-byte Connection ID (uint32)
      * 4-byte Sequence Number (uint32)
-     * 2-byte Requested Message Size (uint32)
+     * 2-byte Requested Message Size (uint16)
 
     The Connection ID field is the ID generated earlier used to identify the
     connection.
