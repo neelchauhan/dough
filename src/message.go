@@ -1,5 +1,11 @@
 package main
 
+import (
+    "bytes"
+    "encoding/binary"
+    "hash/crc32"
+)
+
 // Message types
 var MSG_TYPE_CHECKSUM_INVALID uint8 = 0
 var MSG_TYPE_CONN_INIT_REQ uint8 = 1
@@ -13,6 +19,11 @@ var MSG_TYPE_CONN_REQ_FAILED uint8 = 8
 var MSG_TYPE_CONN_TEARDOWN uint8 = 9
 var MSG_TYPE_CONN_TEARDOWN_ACK uint8 = 10
 var MSG_TYPE_INVALID_CONN uint8 = 11
+
+// Message Sizes
+var MSG_SIZE_SEND uint16 = 120
+var MSG_SIZE_RECV_TXT uint16 = 180
+var MSG_SIZE_RECV_OPT uint16 = 3072
 
 type message interface {
     mtype() uint8
@@ -139,4 +150,63 @@ type msg_invalid_conn struct {
 
 func (m msg_invalid_conn) mtype() uint8 {
     return MSG_TYPE_INVALID_CONN
+}
+
+// Message Parsing function
+
+func msg_to_bytes(msg message, msg_size uint16) {
+    msg_type := msg.mtype()
+    msg_buf_contents := new(bytes.Buffer)
+    var msg_crc32 uint32 = 0
+
+    switch msg_type {
+        case MSG_TYPE_CHECKSUM_INVALID:
+            ;
+
+        case MSG_TYPE_CONN_INIT_REQ:
+            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_init_req).conn_id_spec)
+
+        case MSG_TYPE_CONN_ACCEPTED:
+            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_accepted).conn_id)
+
+        case MSG_TYPE_CONN_REJECTED:
+            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_rejected).error_id)
+
+        case MSG_TYPE_CONN_SEND_DATA:
+            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_send_data).conn_id)
+            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_send_data).seq_no)
+            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_send_data).size)
+            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_send_data).data)
+
+        case MSG_TYPE_CONN_SEND_DATA_ACK:
+            ;
+
+        case MSG_TYPE_CONN_RET_DATA_REQ:
+            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_ret_data_req).conn_id)
+            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_ret_data_req).seq_no)
+            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_ret_data_req).size)
+
+        case MSG_TYPE_CONN_RET_DATA:
+            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_ret_data).size)
+            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_ret_data).data)
+
+        case MSG_TYPE_CONN_REQ_FAILED:
+            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_req_failed).fail_type)
+
+        case MSG_TYPE_CONN_TEARDOWN:
+            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_teardown).connection_type)
+
+        case MSG_TYPE_CONN_TEARDOWN_ACK:
+            ;
+
+        case MSG_TYPE_INVALID_CONN:
+            ;
+    }
+    if msg_buf_contents.Len() != 0 {
+        msg_crc32 = crc32.ChecksumIEEE(msg_buf_contents.Bytes())
+    }
+
+    msg_buf_header := new(bytes.Buffer)
+    binary.Write(msg_buf_header, binary.BigEndian, msg_type)
+    binary.Write(msg_buf_header, binary.BigEndian, msg_crc32)
 }
