@@ -143,7 +143,7 @@ func (m msg_conn_teardown_ack) mtype() uint8 {
     return MSG_TYPE_CONN_TEARDOWN_ACK
 }
 
-// Connection Teardown Acknowledgement functions
+// Invalid Connection functions
 
 type msg_invalid_conn struct {
 }
