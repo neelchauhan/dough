@@ -176,7 +176,7 @@ func msg_to_bytes(msg message, msg_size uint16) {
             binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_send_data).conn_id)
             binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_send_data).seq_no)
             binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_send_data).size)
-            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_send_data).data)
+            msg_buf_contents.write(msg.(msg_conn_send_data).data)
 
         case MSG_TYPE_CONN_SEND_DATA_ACK:
             ;
@@ -188,7 +188,7 @@ func msg_to_bytes(msg message, msg_size uint16) {
 
         case MSG_TYPE_CONN_RET_DATA:
             binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_ret_data).size)
-            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_ret_data).data)
+            msg_buf_contents.write(msg.(msg_conn_ret_data).data)
 
         case MSG_TYPE_CONN_REQ_FAILED:
             binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_req_failed).fail_type)
@@ -209,4 +209,7 @@ func msg_to_bytes(msg message, msg_size uint16) {
     msg_buf_header := new(bytes.Buffer)
     binary.Write(msg_buf_header, binary.BigEndian, msg_type)
     binary.Write(msg_buf_header, binary.BigEndian, msg_crc32)
+
+    msg_buf := new(bytes.Buffer)
+    binary.Write(msg_buf,
 }
