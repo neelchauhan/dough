@@ -4,6 +4,7 @@ import (
     "bytes"
     "encoding/binary"
     "hash/crc32"
+    "io"
 )
 
 // Message types
@@ -215,4 +216,103 @@ func msg_to_bytes(msg message, msg_size uint16) []byte {
     msg_buf.Write(msg_buf_contents.Bytes())
 
     return msg_buf.Bytes()
+}
+
+func bytes_to_msg(msg_bytes []byte, msg_size uint16) message {
+    msg_buf := bytes.NewReader(msg_bytes)
+    var msg message
+
+    var msg_type uint8
+    binary.Read(msg_buf, binary.BigEndian, &msg_type)
+
+    var msg_crc32 uint32
+    binary.Read(msg_buf, binary.BigEndian, &msg_crc32)
+
+    switch msg_type {
+        case MSG_TYPE_CHECKSUM_INVALID:
+            var conn_id uint32
+            binary.Read(msg_buf, binary.BigEndian, &conn_id)
+
+            msg = msg_checksum_invalid{conn_id}
+
+        case MSG_TYPE_CONN_INIT_REQ:
+            var conn_id_spec uint32
+            binary.Read(msg_buf, binary.BigEndian, &conn_id_spec)
+
+            msg = msg_conn_init_req{conn_id_spec}
+
+        case MSG_TYPE_CONN_ACCEPTED:
+            var conn_id uint32
+            binary.Read(msg_buf, binary.BigEndian, &conn_id)
+
+            msg = msg_conn_accepted{conn_id}
+
+        case MSG_TYPE_CONN_REJECTED:
+            var error_id uint16
+            binary.Read(msg_buf, binary.BigEndian, &error_id)
+
+            msg = msg_conn_rejected{error_id}
+
+        case MSG_TYPE_CONN_SEND_DATA:
+            var conn_id uint32
+            var seq_no uint32
+            var size uint16
+            var data []byte
+
+            binary.Read(msg_buf, binary.BigEndian, &conn_id)
+            binary.Read(msg_buf, binary.BigEndian, &seq_no)
+            binary.Read(msg_buf, binary.BigEndian, &size)
+
+            data = make([]byte, size)
+            io.ReadFull(msg_buf, data)
+
+            msg = msg_conn_send_data{conn_id, seq_no, size, data}
+
+        case MSG_TYPE_CONN_SEND_DATA_ACK:
+            msg = msg_conn_send_data_ack{}
+
+        case MSG_TYPE_CONN_RET_DATA_REQ:
+            var conn_id uint32
+            var seq_no uint32
+            var size uint16
+
+            binary.Read(msg_buf, binary.BigEndian, &conn_id)
+            binary.Read(msg_buf, binary.BigEndian, &seq_no)
+            binary.Read(msg_buf, binary.BigEndian, &size)
+
+            msg = msg_conn_ret_data_req{conn_id, seq_no, size}
+
+        case MSG_TYPE_CONN_RET_DATA:
+            var size uint16
+            var data []byte
+
+            binary.Read(msg_buf, binary.BigEndian, &size)
+
+            data = make([]byte, size)
+            io.ReadFull(msg_buf, data)
+
+            msg = msg_conn_ret_data{size, data}
+
+        case MSG_TYPE_CONN_REQ_FAILED:
+            var fail_type uint8
+
+            binary.Read(msg_buf, binary.BigEndian, fail_type)
+
+            msg = msg_conn_req_failed{fail_type}
+
+        case MSG_TYPE_CONN_TEARDOWN:
+            var conn_id uint32
+
+            binary.Read(msg_buf, binary.BigEndian, conn_id)
+
+            msg = msg_conn_teardown{conn_id}
+
+        case MSG_TYPE_CONN_TEARDOWN_ACK:
+            msg = msg_conn_teardown{}
+
+        case MSG_TYPE_INVALID_CONN:
+            msg = msg_invalid_conn{}
+    }
+
+    return msg
 }
