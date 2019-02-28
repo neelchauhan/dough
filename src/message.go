@@ -128,7 +128,7 @@ func (m msg_conn_req_failed) mtype() uint8 {
 // Connection Teardown functions
 
 type msg_conn_teardown struct {
-    connection_type uint32
+    connection_id uint32
 }
 
 func (m msg_conn_teardown) mtype() uint8 {
@@ -195,7 +195,7 @@ func msg_to_bytes(msg message, msg_size uint16) []byte {
             binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_req_failed).fail_type)
 
         case MSG_TYPE_CONN_TEARDOWN:
-            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_teardown).connection_type)
+            binary.Write(msg_buf_contents, binary.BigEndian, msg.(msg_conn_teardown).connection_id)
 
         case MSG_TYPE_CONN_TEARDOWN_ACK:
             ;
