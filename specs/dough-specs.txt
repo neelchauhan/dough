@@ -37,7 +37,7 @@
 
     Messages will be encoded in the following formats:
 
-     * From the client to the server: 120 byte bnary message encoded to a
+     * From the client to the server: 120 byte binary message encoded to a
        Base32-encoded 192 byte subdomain
         * The message will be encoded in a subdomain
      * From the server to the client (Option A): 3072-byte message in binary
@@ -114,10 +114,10 @@
 
     If the client sends this message, it should re-send the request after this
     message. If the server receives any other type of message with a particular
-    Connection ID, then the previus saved message should be discarded to make
+    Connection ID, then the previous saved message should be discarded to make
     space for the next message.
 
-    Should this message not be senty or received, then both sides should assume
+    Should this message not be sent or received, then both sides should assume
     the connection succeeded.
 
     For connections from servers to clients, the Connection ID should be 0. For
