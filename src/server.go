@@ -26,7 +26,8 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
                 outMsg = msg_checksum_invalid{0}
                 outBytes = msg_to_bytes(outMsg, MSG_SIZE_RECV_TXT)
             } else {
-                domainMsg := bytes_to_msg(decodedMsg, uint16(len(decodedMsg)))
+                inputMsg := bytes_to_msg(decodedMsg, uint16(len(decodedMsg)))
+                outMsg = process_msg(inputMsg)
             }
 
             encodedArray := make([]string, 1)
