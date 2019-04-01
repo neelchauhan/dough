@@ -23,5 +23,5 @@ func handle_conn_init_req(msg message) message {
 
     ConnectionTable[newConnId] = Connection{newConnId, MSG_TYPE_CONN_INIT_REQ, MSG_TYPE_CONN_ACCEPTED}
 
-    return msg_conn_init_req{newConnId}
+    return msg_conn_accepted{newConnId}
 }
