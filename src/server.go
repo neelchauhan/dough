@@ -8,8 +8,8 @@ import (
     "github.com/miekg/dns"
 )
 
-type handler struct{}
-func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
+type dnsHandler struct{}
+func (this *dnsHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
     msg := dns.Msg{}
     msg.SetReply(r)
 
