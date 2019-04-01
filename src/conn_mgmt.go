@@ -18,7 +18,7 @@ func init_conn_table() {
 }
 
 func handle_conn_init_req(msg message) message {
-    connInitReq := msg_conn_init_req(msg)
+    connInitReq := msg.(msg_conn_init_req)
 
     // Reject if we already have this connection ID specifier
     if _, ok := ConnSpecIdMap[connInitReq.conn_id_spec]; ok {
@@ -26,10 +26,10 @@ func handle_conn_init_req(msg message) message {
     }
     // TODO: Reject connections on server overload
 
-    newConnId := connInitReq.conn_id_spec * rand.Intn(8)
+    newConnId := connInitReq.conn_id_spec * uint32(rand.Intn(8))
 
     ConnectionTable[newConnId] = Connection{newConnId, MSG_TYPE_CONN_INIT_REQ, MSG_TYPE_CONN_ACCEPTED}
-    ConnSpecIdMap[connInitReq.conn_id_spec]
+    ConnSpecIdMap[connInitReq.conn_id_spec] = newConnId
 
     return msg_conn_accepted{newConnId}
 }
