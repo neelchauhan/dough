@@ -3,6 +3,8 @@ package main
 import (
     "encoding/base32"
     "encoding/base64"
+    "encoding/binary"
+    "hash/crc32"
     "strings"
 
     "github.com/miekg/dns"
@@ -26,8 +28,15 @@ func (this *dnsHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
                 outMsg = msg_checksum_invalid{0}
                 outBytes = msg_to_bytes(outMsg, MSG_SIZE_RECV_TXT)
             } else {
-                inputMsg := bytes_to_msg(decodedMsg, uint16(len(decodedMsg)))
-                outMsg = process_msg_server(inputMsg)
+                msgCrc32 := binary.LittleEndian.Uint32(decodedMsg[1:5])
+                msgPostHeader := decodedMsg[5:]
+                if msgCrc32 == crc32.ChecksumIEEE(msgPostHeader) {
+                    inputMsg := bytes_to_msg(decodedMsg, uint16(len(decodedMsg)))
+                    outMsg = process_msg_server(inputMsg)
+                } else {
+                    outMsg = msg_checksum_invalid{0}
+                    outBytes = msg_to_bytes(outMsg, MSG_SIZE_RECV_TXT)
+                }
             }
 
             encodedArray := make([]string, 1)
