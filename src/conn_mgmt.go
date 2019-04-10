@@ -23,6 +23,7 @@ var ConnSpecIdMap map[uint32]uint32
 
 func init_conn_table() {
     ConnectionTable = make(map[uint32]Connection)
+    ConnSpecIdMap = make(map[uint32]uint32)
 }
 
 func handle_conn_init_req(msg message) message {
