@@ -6,8 +6,16 @@ import (
 
 type Connection struct {
     ConnectionId uint32
+
     LastMessageTypeRecv uint8
+    LastMessageRecv []byte
+    RecvSeqNumber uint64
+    RecvHasChecksumInvalid bool
+
     LastMessageTypeSent uint8
+    LastMessageSent []byte
+    SendSeqNumber uint64
+    SendHasChecksumInvalid bool
 }
 
 var ConnectionTable map[uint32]Connection
@@ -28,7 +36,7 @@ func handle_conn_init_req(msg message) message {
 
     newConnId := connInitReq.conn_id_spec * uint32(rand.Intn(8))
 
-    ConnectionTable[newConnId] = Connection{newConnId, MSG_TYPE_CONN_INIT_REQ, MSG_TYPE_CONN_ACCEPTED}
+    ConnectionTable[newConnId] = Connection{newConnId, MSG_TYPE_CONN_INIT_REQ, []byte{}, 0, false, MSG_TYPE_CONN_ACCEPTED, []byte{}, 0, false}
     ConnSpecIdMap[connInitReq.conn_id_spec] = newConnId
 
     return msg_conn_accepted{newConnId}
