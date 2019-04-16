@@ -57,5 +57,10 @@ func handle_conn_send_data(msg message) message {
         return msg_checksum_invalid{}
     }
 
+    connSendData.seq_no = connSendData.seq_no + connSendData.size
+    if connSendData.seq_no > 2**32 - 1 {
+        connSendData.seq_no = connSendData - 2**32
+    }
+
     return msg_conn_send_data_ack{}
 }
