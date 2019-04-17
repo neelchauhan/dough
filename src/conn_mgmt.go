@@ -54,7 +54,7 @@ func handle_conn_send_data(msg message) message {
 
     conn := ConnectionTable[connSendData.conn_id]
 
-    if connSendData.seq_no + uint32(connSendData.size) != conn.sendSeqNumber + uint32(connSendData.size) {
+    if connSendData.seq_no + uint32(connSendData.size) != conn.SendSeqNumber + uint32(connSendData.size) {
         return msg_checksum_invalid{}
     }
 
