@@ -1,6 +1,7 @@
 package main
 
 import (
+    "math"
     "math/rand"
 )
 
@@ -58,8 +59,8 @@ func handle_conn_send_data(msg message) message {
     }
 
     connSendData.seq_no = connSendData.seq_no + uint32(connSendData.size)
-    if connSendData.seq_no > 2**32 - 1 {
-        connSendData.seq_no = connSendData.seq_no - 2**32
+    if connSendData.seq_no > math.Pow(2, 32) - 1 {
+        connSendData.seq_no = connSendData.seq_no - math.Pow(2, 32)
     }
 
     return msg_conn_send_data_ack{}
