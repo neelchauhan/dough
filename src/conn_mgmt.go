@@ -47,11 +47,11 @@ func handle_conn_send_data(msg message) message {
     connSendData := msg.(msg_conn_send_data)
 
     // Reject if we already have this connection ID specifier
-    if _, ok := ConnnectionTable[connSendData.conn_id]; !ok {
+    if _, ok := ConnectionTable[connSendData.conn_id]; !ok {
         return msg_invalid_conn{}
     }
 
-    conn := ConnnectionTable[connSendData.conn_id]
+    conn := ConnectionTable[connSendData.conn_id]
 
     if connSendData.seq_no + connSendData.size != conn.sendSeqNo + connSendData.size {
         return msg_checksum_invalid{}
