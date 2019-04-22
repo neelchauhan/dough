@@ -54,13 +54,13 @@ func handle_conn_send_data(msg message) message {
 
     conn := ConnectionTable[connSendData.conn_id]
 
-    if connSendData.seq_no + uint32(connSendData.size) != conn.SendSeqNumber + uint32(connSendData.size) {
+    if uint64(connSendData.seq_no) + uint64(connSendData.size) != conn.SendSeqNumber + uint64(connSendData.size) {
         return msg_checksum_invalid{}
     }
 
     connSendData.seq_no = connSendData.seq_no + uint32(connSendData.size)
-    if connSendData.seq_no > math.Pow(2, 32) - 1 {
-        connSendData.seq_no = connSendData.seq_no - math.Pow(2, 32)
+    if connSendData.seq_no > uint32(math.Pow(2, 32) - 1) {
+        connSendData.seq_no = connSendData.seq_no - uint32(math.Pow(2, 32))
     }
 
     return msg_conn_send_data_ack{}
