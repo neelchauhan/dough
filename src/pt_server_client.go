@@ -51,3 +51,23 @@ type pt_conn struct {
     msg_in chan ptsrv_msg
     msg_out chan ptsrv_msg
 }
+
+var pt_conn_map map[uint32]pt_conn
+
+func init_conn_map() {
+    pt_conn_map = make(map[uint32]pt_conn)
+}
+
+func handle_conn(conn_id uint32) {
+    var running bool = true
+    conn_chan := pt_conn_map[conn_id]
+
+    for running {
+        msg <- conn_chan.msg_in
+        msg_type := msg.mtype()
+
+        switch msg_type {
+             // Do things here
+        }
+    }
+}
