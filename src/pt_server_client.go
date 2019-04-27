@@ -65,9 +65,12 @@ func handle_conn(conn_id uint32) {
     for running {
         msg <- conn_chan.msg_in
         msg_type := msg.mtype()
+        var msg_out ptsrv_msg
 
         switch msg_type {
              // Do things here
         }
+
+        conn_chan.msg_out <- msg_out
     }
 }
