@@ -50,6 +50,7 @@ func (m ptsrv_shutdown) mtype() uint8 {
 type pt_conn struct {
     msg_in chan ptsrv_msg
     msg_out chan ptsrv_msg
+    or_conn net.Conn
 }
 
 var pt_conn_map map[uint32]pt_conn
@@ -74,8 +75,13 @@ func handle_conn(conn_id uint32) {
 
         switch msg_type {
              // Do things here
+             case PTSRV_MSG_SHUTDOWN:
+                 running = false
         }
 
-        conn_chan.msg_out <- msg_out
+        if msg_type != PTSRV_MSG_SHUTDOWN:
+            conn_chan.msg_out <- msg_out
     }
+
+    conn_chan.or_conn.close()
 }
