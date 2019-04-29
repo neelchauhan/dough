@@ -58,6 +58,11 @@ func init_conn_map() {
     pt_conn_map = make(map[uint32]pt_conn)
 }
 
+func init_conn(conn_id uint32) {
+    pt_conn_map[conn_id] = pt_conn{}
+    go handle_conn(conn_id)
+}
+
 func handle_conn(conn_id uint32) {
     var running bool = true
     conn_chan := pt_conn_map[conn_id]
