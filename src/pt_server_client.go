@@ -1,5 +1,12 @@
 package main
 
+import (
+    "net"
+    "git.torproject.org/pluggable-transports/goptlib.git"
+)
+
+var ptInfo pt.ServerInfo
+
 var PTSRV_MSG_SEND_DATA uint8 = 1;
 var PTSRV_MSG_SEND_DATA_ACK uint8 = 2;
 var PTSRV_MSG_RECV_DATA uint8 = 3;
@@ -60,8 +67,13 @@ func init_conn_map() {
 }
 
 func init_conn(conn_id uint32) {
-    pt_conn_map[conn_id] = pt_conn{}
-    go handle_conn(conn_id)
+    or_conn, err := pt.DialOr(&ptInfo, "127.0.0.1", "dough")
+    pt_conn_map[conn_id] = pt_conn{nil, nil, or_conn}
+    if err != nil {
+        delete(pt_conn_map, conn_id)
+    } else { // Launch
+        go handle_conn(conn_id)
+    }
 }
 
 func handle_conn(conn_id uint32) {
@@ -69,19 +81,22 @@ func handle_conn(conn_id uint32) {
     conn_chan := pt_conn_map[conn_id]
 
     for running {
-        msg <- conn_chan.msg_in
+        msg := <-conn_chan.msg_in
         msg_type := msg.mtype()
         var msg_out ptsrv_msg
 
         switch msg_type {
-             // Do things here
+             case PTSRV_MSG_SEND_DATA:
+                 msg_send_data := msg.(ptsrv_send_data)
+                 conn_chan.or_conn.Write(msg_send_data.data)
              case PTSRV_MSG_SHUTDOWN:
                  running = false
         }
 
-        if msg_type != PTSRV_MSG_SHUTDOWN:
+        if msg_type != PTSRV_MSG_SHUTDOWN {
             conn_chan.msg_out <- msg_out
+        }
     }
 
-    conn_chan.or_conn.close()
+    conn_chan.or_conn.Close()
 }
