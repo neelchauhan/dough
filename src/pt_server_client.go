@@ -91,7 +91,9 @@ func handle_conn(conn_id uint32) {
                  conn_chan.or_conn.Write(msg_send_data.data)
                  msg_out = new(ptsrv_send_data_ack)
              case PTSRV_MSG_RECV_DATA_REQ:
-                 ;
+                 bytes_recv_data := make([]byte, MSG_SIZE_RECV_TXT)
+                 conn_chan.or_conn.Read(bytes_recv_data)
+                 msg_out = ptsrv_recv_data{bytes_recv_data}
              case PTSRV_MSG_SHUTDOWN:
                  running = false
         }
