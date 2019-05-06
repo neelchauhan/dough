@@ -9,8 +9,8 @@ var ptInfo pt.ServerInfo
 
 var PTSRV_MSG_SEND_DATA uint8 = 1;
 var PTSRV_MSG_SEND_DATA_ACK uint8 = 2;
-var PTSRV_MSG_RECV_DATA uint8 = 3;
-var PTSRV_MSG_RECV_DATA_ACK uint8 = 4;
+var PTSRV_MSG_RECV_DATA_REQ uint8 = 3;
+var PTSRV_MSG_RECV_DATA uint8 = 4;
 var PTSRV_MSG_SHUTDOWN uint8 = 5;
 
 type ptsrv_msg interface {
@@ -32,19 +32,19 @@ func (m ptsrv_send_data_ack) mtype() uint8 {
     return PTSRV_MSG_SEND_DATA_ACK
 }
 
+type ptsrv_recv_data_req struct {
+}
+
+func (m ptsrv_recv_data_req) mtype() uint8 {
+    return PTSRV_MSG_RECV_DATA_REQ
+}
+
 type ptsrv_recv_data struct {
     data []byte
 }
 
 func (m ptsrv_recv_data) mtype() uint8 {
     return PTSRV_MSG_RECV_DATA
-}
-
-type ptsrv_recv_data_ack struct {
-}
-
-func (m ptsrv_recv_data_ack) mtype() uint8 {
-    return PTSRV_MSG_RECV_DATA_ACK
 }
 
 type ptsrv_shutdown struct {
@@ -89,6 +89,8 @@ func handle_conn(conn_id uint32) {
              case PTSRV_MSG_SEND_DATA:
                  msg_send_data := msg.(ptsrv_send_data)
                  conn_chan.or_conn.Write(msg_send_data.data)
+             case PTSRV_MSG_RECV_DATA_REQ:
+                 ;
              case PTSRV_MSG_SHUTDOWN:
                  running = false
         }
