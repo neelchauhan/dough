@@ -67,3 +67,11 @@ func handle_conn_send_data(msg message) message {
 
     return msg_conn_send_data_ack{}
 }
+
+func handle_conn_shutdown(msg message) message {
+    msg_teardown := msg.(msg_conn_teardown)
+
+    pt_conn_map[msg_teardown.connection_id].msg_in <- ptsrv_shutdown{}
+
+    return msg_conn_teardown_ack{}
+}
