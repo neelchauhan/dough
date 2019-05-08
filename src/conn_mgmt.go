@@ -41,6 +41,8 @@ func handle_conn_init_req(msg message) message {
     ConnectionTable[newConnId] = Connection{newConnId, MSG_TYPE_CONN_INIT_REQ, []byte{}, 0, false, MSG_TYPE_CONN_ACCEPTED, []byte{}, 0, false}
     ConnSpecIdMap[connInitReq.conn_id_spec] = newConnId
 
+    init_conn(newConnId)
+
     return msg_conn_accepted{newConnId}
 }
 
